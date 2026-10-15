@@ -28,6 +28,7 @@ Carte PYNQ-Z2 : fpgautil -b fpga.bin puis ./locod-cpu
 | `02_convolution_cpu/` | Mesures de vitesse des 4 convolutions de l'encodeur sur la carte : `conv_bench.c` (v1) et `conv_bench2.c` (v2), plus `locod_conv_test/main.c` (programme LoCoD CPU seul) |
 | `03_export_onnx/` | `export_balle.py` : exporte l'encodeur (`ga.onnx`) et le décodeur (`gs.onnx`), GDN réécrite en opérateurs standard |
 | `04_docker_sdk/` | `Dockerfile` de l'image `sdk_pynqz2` (compilation ARM) |
+| `05_benchmark_carte/` | Benchmark complet sur la carte : encodeur + codeur rANS + décodeur en C, 200 images, comparaison avec le PC |
 | `docs/` | `resultats.md` (chiffres mesurés), `commandes.md` (commandes utiles) |
 
 Les fichiers `.onnx` ne sont pas versionnés : on les régénère avec `export_balle.py`.
@@ -56,6 +57,7 @@ cd 03_export_onnx && python export_balle.py 3
 - [x] Référence PC (taux, PSNR, vitesse)
 - [x] Vitesse des convolutions sur la carte (naïf vs NEON)
 - [x] Export ONNX encodeur + décodeur (vérifié identique à PyTorch)
+- [ ] Benchmark 200 images sur la carte (implémentation C de référence, `05_benchmark_carte/`)
 - [ ] Import dans Aidge
 - [ ] Export C avec Acetone
 - [ ] Intégration dans LoCoD, test CPU sur la carte

@@ -6,3 +6,8 @@ conv_O2
 conv_O3
 b2_O*
 __pycache__/
+board_data/
+05_benchmark_carte/balle
+05_benchmark_carte/board.csv
+05_benchmark_carte/*.bin
+05_benchmark_carte/*_test.*
