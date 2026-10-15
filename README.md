@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/photo.png" alt="J'aime Hugo" width="100%">
+</p>
+
 # Challenge AIDGE – DEEPGREEN
 
 Compression d'images par réseau de neurones (modèle de J. Ballé) sur carte **PYNQ-Z2**, avec la chaîne
