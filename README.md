@@ -57,12 +57,24 @@ cd 03_export_onnx && python export_balle.py 3
 - [x] Référence PC (taux, PSNR, vitesse)
 - [x] Vitesse des convolutions sur la carte (naïf vs NEON)
 - [x] Export ONNX encodeur + décodeur (vérifié identique à PyTorch)
-- [ ] Benchmark 200 images sur la carte (implémentation C de référence, `05_benchmark_carte/`)
+- [x] Benchmark 200 images sur la carte (implémentation C de référence, `05_benchmark_carte/`) : voir tableau ci-dessous
 - [ ] Import dans Aidge
 - [ ] Export C avec Acetone
 - [ ] Intégration dans LoCoD, test CPU sur la carte
 - [ ] FPGA (Vivado 2022.2 + Panda-Bambu)
 - [ ] Comparaison CPU / CPU + FPGA
+
+## Résultats actuels (200 images 64x64, bmshj2018_factorized q3)
+
+| | PC (PyTorch) | Carte PYNQ-Z2 (C, CPU seul) |
+|---|---|---|
+| Octets moyens / image | 160.8 | 158.3 |
+| PSNR moyen | 30.47 dB | 30.47 dB |
+| Taux de compression | 76.4:1 | 77.6:1 |
+| Compression | 3.5 ms | 922.7 ms |
+| Décompression | 3.7 ms | 861.8 ms |
+
+La carte donne le même résultat que le PC (0 symbole différent, écart PSNR max 0.027 dB) mais ~250x plus lentement : c'est la base de comparaison pour l'accélération FPGA. Détails dans `docs/resultats.md`.
 
 ## Questions pour Viveris
 
