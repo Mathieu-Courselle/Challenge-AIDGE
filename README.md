@@ -79,9 +79,3 @@ cd 03_export_onnx && python export_balle.py 3
 | Décompression | 3.7 ms | 861.8 ms |
 
 La carte donne le même résultat que le PC (0 symbole différent, écart PSNR max 0.027 dB) mais ~250x plus lentement : c'est la base de comparaison pour l'accélération FPGA. Détails dans `docs/resultats.md`.
-
-## Questions pour Viveris
-
-- Quel modèle exact : `bmshj2018_factorized` ou `mbt2018` (dépôt `thekoshkina/learned_image_compression`) ?
-- Aidge gère-t-il les opérateurs utilisés (`Conv`, `ConvTranspose`, `Mul`, `Div`, `Sqrt`) ?
-- Accès à Vivado 2022.2, à l'image Panda-Bambu et au dépôt privé de l'image SDK.
