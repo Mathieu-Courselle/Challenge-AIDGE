@@ -1,0 +1,8 @@
+*.onnx
+*.o
+locod-output/
+sdk-pynqz2.sh
+conv_O2
+conv_O3
+b2_O*
+__pycache__/
