@@ -14,3 +14,8 @@ board_data/
 06_test_fpga/*.bit
 06_test_fpga/locod-cpu
 03_export_onnx/*/export_ga_test/
+05_benchmark_carte/acetone_ga/
+05_benchmark_carte/acetone_gs/
+05_benchmark_carte/balle_acetone
+05_benchmark_carte/acetone.csv
+05_benchmark_carte/.build_inner.sh

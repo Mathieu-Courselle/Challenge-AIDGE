@@ -13,7 +13,8 @@ Elle servira ensuite à valider le code C produit par Acetone (mêmes entrées, 
 | `export_for_board.py` | PC : exporte poids, tables du codeur entropique, 200 images, résultats PyTorch (`ref.csv`) |
 | `balle_format.py` | Format du fichier de poids (numpy seul) |
 | `balle.c` | Carte : encodeur + rANS + décodeur, mesure taille / PSNR / temps |
-| `compare.py` | Tableau PC contre carte |
+| `compare.py` | Tableau des trois métriques pour 2 résultats ou plus (PC, carte, Acetone, FPGA…) |
+| `build_acetone.sh` | Compile `balle.c` pour la carte en y branchant le code C exporté par Acetone |
 | `test_balle_c.py` + `inc/arm_neon.h` | Test sur PC x86 du code C contre une référence numpy (modèle aléatoire) |
 
 ## Utilisation
@@ -41,6 +42,57 @@ ssh.exe root@192.168.0.10 "./balle weights.bin images.bin 200 board.csv"
 scp.exe root@192.168.0.10:/home/root/board.csv .
 cp board.csv ~/Challenge-AIDGE/05_benchmark_carte/
 cd ~/Challenge-AIDGE/05_benchmark_carte && python compare.py board_data/ref.csv board.csv
+```
+
+## Brancher le code Acetone (ou LoCoD / FPGA)
+
+Les trois métriques (vitesse, taux de compression, perte) se mesurent toujours de la même façon : même images, même arrondi,
+même codeur rANS, même calcul du PSNR. Seul le réseau de neurones change. `balle.c` sait remplacer :
+
+- l'encodeur `g_a` par `ga_forward()` (option `-DUSE_ACETONE_ENC`) ;
+- le décodeur `g_s` par `gs_forward()` (option `-DUSE_ACETONE_DEC`).
+
+Format attendu (c'est celui des exports Acetone de `ga.onnx` et `gs.onnx`, interface `model_forward(entrée, &sortie)`) :
+
+| Fonction | Entrée | Sortie |
+|---|---|---|
+| `ga_forward(const float *x, float **y)` | `x` : 3×64×64 flottants, ordre CHW, valeurs entre 0 et 1 | `y` : 192×4×4, ordre CHW (canal, puis pixel) |
+| `gs_forward(const float *y, float **x)` | `y` : 192×4×4, ordre CHW (valeurs décodées plus médianes) | `x` : 3×64×64, ordre CHW |
+
+Le tampon de sortie appartient au code exporté (il met son adresse dans `*sortie`).
+
+```bash
+# 1. copier les exports Acetone (dossiers complets, avec dnn/src/forward.c)
+cd ~/Challenge-AIDGE/05_benchmark_carte
+cp -r /chemin/export_ga_test acetone_ga        # encodeur
+cp -r /chemin/export_gs_test acetone_gs        # décodeur (facultatif)
+
+# 2. compiler pour la carte (-O2, un seul cœur ; OMP=1 pour essayer -fopenmp, il faut alors libgomp sur la carte)
+bash build_acetone.sh
+
+# 3. envoyer et lancer comme avant (mêmes poids : médianes et tables du codeur entropique)
+scp.exe balle_acetone weights.bin images.bin root@192.168.0.10:/home/root/
+ssh.exe root@192.168.0.10 "chmod +x balle_acetone && ./balle_acetone weights.bin images.bin 200 acetone.csv"
+scp.exe root@192.168.0.10:/home/root/acetone.csv .
+
+# 4. comparer les trois versions
+python compare.py board_data/ref.csv:PC board.csv:Carte_C acetone.csv:Carte_Acetone
+```
+
+Points d'attention :
+- Le `Makefile` des exports Acetone compile en `-O0 -g` : c'est lent. `build_acetone.sh` compile en `-O2`.
+- Le script renomme `model_forward` en `ga_forward` / `gs_forward` et rend privés les autres symboles (`objcopy`) : les deux exports peuvent avoir des tableaux de poids de même nom sans conflit.
+- Si le code exporté utilise OpenMP, il faut `libgomp` sur la carte, sinon compiler sans (`OMP` non défini).
+- Pour un FPGA via LoCoD : si le code généré garde la même interface (une fonction qui prend l'entrée et rend la sortie), il se branche de la même façon. Cela reste à vérifier avec les camarades.
+
+### Test du branchement sur PC (sans Acetone)
+
+L'option `-DSTUB_ACETONE` remplace `ga_forward` / `gs_forward` par des fonctions écrites avec le code de `balle.c`, mais qui parlent le format Acetone (CHW).
+Le résultat doit être identique à la version de référence (mêmes octets, même PSNR, 0 symbole différent) : cela vérifie les conversions de format.
+
+```bash
+gcc -O2 -std=gnu11 -D__ARM_NEON -Iinc balle.c -DSTUB_ACETONE -DUSE_ACETONE_ENC -DUSE_ACETONE_DEC -o balle_stub -lm
+python test_balle_c.py ./balle_stub
 ```
 
 ## Ce qu'il faut vérifier

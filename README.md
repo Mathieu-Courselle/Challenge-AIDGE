@@ -61,6 +61,7 @@ cd 03_export_onnx/bmshj2018-factorized && python export_onnx.py 3 64   # ou : ba
 - [x] Export ONNX des 5 modèles CompressAI (`03_export_onnx/`)
 - [x] Test du FPGA sur la carte avec un exemple LoCoD (`06_test_fpga/`)
 - [x] Benchmark 200 images sur la carte (implémentation C de référence, `05_benchmark_carte/`) : voir tableau ci-dessous
+- [x] Banc de test prêt à brancher le code Acetone / FPGA (`05_benchmark_carte/build_acetone.sh`, testé sur PC)
 - [ ] Import dans Aidge
 - [ ] Export C avec Acetone (encodeur bmshj2018-factorized généré, pas encore mesuré sur la carte)
 - [ ] Intégration dans LoCoD, test CPU sur la carte

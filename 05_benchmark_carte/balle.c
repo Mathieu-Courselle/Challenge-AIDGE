@@ -1,6 +1,12 @@
 /* balle.c : bmshj2018_factorized complet en C (float32, NEON) + codage entropique rANS.
    Compresse puis decompresse des images 64x64 RGB, mesure taille, PSNR et temps.
    Usage : ./balle weights.bin images.bin N sortie.csv [check.bin]
+
+   Branchement du code Acetone (voir README) :
+     -DUSE_ACETONE_ENC : le reseau encodeur g_a est remplace par ga_forward() (export Acetone de ga.onnx)
+     -DUSE_ACETONE_DEC : le reseau decodeur g_s est remplace par gs_forward() (export Acetone de gs.onnx)
+   Le reste (arrondi, codeur rANS, mesures) est inchange : les trois metriques restent comparables.
+   -DSTUB_ACETONE : auto test du branchement (ga_forward / gs_forward sont alors ecrits avec le code de ce fichier).
    Compilation carte : $CC -O2 -std=gnu11 balle.c -o balle -lm   (voir README) */
 #include <stdio.h>
 #include <stdlib.h>
@@ -207,6 +213,12 @@ static void entropy_decode(const uint8_t *buf, int32_t *sym) {
     }
 }
 
+/* ---- code Acetone branchable ---- */
+#if (defined(USE_ACETONE_ENC) || defined(USE_ACETONE_DEC)) && !defined(STUB_ACETONE)
+extern void ga_forward(const float *entree, float **sortie);   /* 3x64x64 (CHW, 0..1) -> M x4x4 (CHW) */
+extern void gs_forward(const float *entree, float **sortie);   /* M x4x4 (CHW) -> 3x64x64 (CHW) */
+#endif
+
 /* ---- buffers de travail ---- */
 static float *pad0, *a1, *p1, *a2, *p2, *a3, *p3, *yq;
 static float *q0, *d1, *q1, *d2, *q2, *d3, *q3, *xhat;
@@ -223,7 +235,47 @@ static void alloc_buffers(void) {
     xhat = xmalloc((size_t)64 * 64 * 8 * 4);
 }
 
+#ifdef STUB_ACETONE
+/* Faux export Acetone pour tester le branchement : meme reseau, mais appele avec les formats Acetone (CHW). */
+static float *stub_y, *stub_x;
+__attribute__((unused)) static void stub_ga(const float *in, float **out) {
+    memset(pad0, 0, (size_t)68 * 68 * 3 * 4);
+    for (int y = 0; y < IMG; y++) for (int x = 0; x < IMG; x++) for (int c = 0; c < 3; c++)
+        pad0[((size_t)(y + 2) * 68 + x + 2) * 3 + c] = in[((size_t)c * IMG + y) * IMG + x];
+    conv_s2(pad0, &ga[0], 64, 64, a1); gdn(a1, &gda[0], 32 * 32, 0); pad_copy(a1, 32, 32, N, 2, p1);
+    conv_s2(p1, &ga[1], 32, 32, a2);   gdn(a2, &gda[1], 16 * 16, 0); pad_copy(a2, 16, 16, N, 2, p2);
+    conv_s2(p2, &ga[2], 16, 16, a3);   gdn(a3, &gda[2], 8 * 8, 0);   pad_copy(a3, 8, 8, N, 2, p3);
+    conv_s2(p3, &ga[3], 8, 8, yq);
+    if (!stub_y) stub_y = xmalloc((size_t)M * 16 * 4);
+    for (int c = 0; c < M; c++) for (int p = 0; p < 16; p++) stub_y[c * 16 + p] = yq[(size_t)p * M + c];
+    *out = stub_y;
+}
+__attribute__((unused)) static void stub_gs(const float *in, float **out) {
+    memset(q0, 0, (size_t)6 * 6 * M * 4);
+    for (int p = 0; p < 16; p++) for (int c = 0; c < M; c++)
+        q0[((size_t)((p / 4) + 1) * 6 + (p % 4) + 1) * M + c] = in[c * 16 + p];
+    deconv_s2(q0, &gs[0], 4, 4, d1);   gdn(d1, &gds[0], 8 * 8, 1);   pad_copy(d1, 8, 8, N, 1, q1);
+    deconv_s2(q1, &gs[1], 8, 8, d2);   gdn(d2, &gds[1], 16 * 16, 1); pad_copy(d2, 16, 16, N, 1, q2);
+    deconv_s2(q2, &gs[2], 16, 16, d3); gdn(d3, &gds[2], 32 * 32, 1); pad_copy(d3, 32, 32, N, 1, q3);
+    deconv_s2(q3, &gs[3], 32, 32, xhat);
+    if (!stub_x) stub_x = xmalloc((size_t)3 * IMG * IMG * 4);
+    for (int p = 0; p < IMG * IMG; p++) for (int c = 0; c < 3; c++) stub_x[(size_t)c * IMG * IMG + p] = xhat[(size_t)p * 8 + c];
+    *out = stub_x;
+}
+#define ga_forward stub_ga
+#define gs_forward stub_gs
+#endif
+
 static int encode_image(const uint8_t *img, uint8_t *out, int32_t *sym) {
+#ifdef USE_ACETONE_ENC
+    static float xin[3 * IMG * IMG];
+    float *yo = NULL;
+    for (int y = 0; y < IMG; y++) for (int x = 0; x < IMG; x++) for (int c = 0; c < 3; c++)
+        xin[((size_t)c * IMG + y) * IMG + x] = img[((size_t)y * IMG + x) * 3 + c] / 255.0f;
+    ga_forward(xin, &yo);
+    for (int c = 0; c < M; c++) for (int p = 0; p < 16; p++)
+        sym[c * 16 + p] = (int32_t)nearbyintf(yo[c * 16 + p] - medians[c]);
+#else
     memset(pad0, 0, (size_t)68 * 68 * 3 * 4);
     for (int y = 0; y < IMG; y++) for (int x = 0; x < IMG; x++) for (int c = 0; c < 3; c++)
         pad0[((size_t)(y + 2) * 68 + x + 2) * 3 + c] = img[((size_t)y * IMG + x) * 3 + c] / 255.0f;
@@ -233,11 +285,20 @@ static int encode_image(const uint8_t *img, uint8_t *out, int32_t *sym) {
     conv_s2(p3, &ga[3], 8, 8, yq);
     for (int c = 0; c < M; c++) for (int p = 0; p < 16; p++)
         sym[c * 16 + p] = (int32_t)nearbyintf(yq[(size_t)p * M + c] - medians[c]);
+#endif
     return entropy_encode(sym, out, 1 << 16);
 }
 
 static void decode_image(const uint8_t *buf, int32_t *sym) {
     entropy_decode(buf, sym);
+#ifdef USE_ACETONE_DEC
+    static float *yin;
+    float *xo = NULL;
+    if (!yin) yin = xmalloc((size_t)M * 16 * 4);
+    for (int c = 0; c < M; c++) for (int p = 0; p < 16; p++) yin[c * 16 + p] = (float)sym[c * 16 + p] + medians[c];
+    gs_forward(yin, &xo);
+    for (int p = 0; p < IMG * IMG; p++) for (int c = 0; c < 3; c++) xhat[(size_t)p * 8 + c] = xo[(size_t)c * IMG * IMG + p];
+#else
     memset(q0, 0, (size_t)6 * 6 * M * 4);
     for (int p = 0; p < 16; p++) for (int c = 0; c < M; c++)
         q0[((size_t)((p / 4) + 1) * 6 + (p % 4) + 1) * M + c] = (float)sym[c * 16 + p] + medians[c];
@@ -245,11 +306,22 @@ static void decode_image(const uint8_t *buf, int32_t *sym) {
     deconv_s2(q1, &gs[1], 8, 8, d2);   gdn(d2, &gds[1], 16 * 16, 1); pad_copy(d2, 16, 16, N, 1, q2);
     deconv_s2(q2, &gs[2], 16, 16, d3); gdn(d3, &gds[2], 32 * 32, 1); pad_copy(d3, 32, 32, N, 1, q3);
     deconv_s2(q3, &gs[3], 32, 32, xhat);
+#endif
 }
 
 int main(int argc, char **argv) {
     if (argc < 5) { fprintf(stderr, "usage: %s weights.bin images.bin N sortie.csv [check.bin]\n", argv[0]); return 1; }
     load_weights(argv[1]); alloc_buffers();
+#ifdef USE_ACETONE_ENC
+    printf("encodeur : code Acetone (ga_forward)\n");
+#else
+    printf("encodeur : implementation de reference (balle.c)\n");
+#endif
+#ifdef USE_ACETONE_DEC
+    printf("decodeur : code Acetone (gs_forward)\n");
+#else
+    printf("decodeur : implementation de reference (balle.c)\n");
+#endif
     int n = atoi(argv[3]);
     FILE *fi = fopen(argv[2], "rb");
     if (!fi) { fprintf(stderr, "impossible d'ouvrir %s\n", argv[2]); return 1; }
