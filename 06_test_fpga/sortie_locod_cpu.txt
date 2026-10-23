@@ -1,0 +1,62 @@
+init_locod - Initializing accelerator system...
+init_locod - Open mem file descriptor... open fd succeed
+init_locod - Mmap control registers at address 0x43c00000... mmap succeed
+init_locod - Reseting accelerators...
+init_locod - Control reg out value during reset = 0xaaaaaaaa
+init_locod - Control reg out value after reset = 0x0
+init_locod - Initializing accel_memory structure... malloc succeed
+
+init_accelerator_memory - Initializing accelerator 0 memory...
+init_accelerator_memory - Param data physical address : 0x10000000
+init_accelerator_memory - Result data physical address : 0x10000480
+init_accelerator_memory - Mmap accelerator 0 memory at address 0x10000000... mmap succeed
+
+cp_param_and_result_to_accel_memory - Copying param and result data to accelerator 0 memory... copy succeed
+
+start_accelerator - Starting accelerator 0...
+start_accelerator - Copying addresses of param and result to accelerator registers
+start_accelerator - param register at 0x10000000
+start_accelerator - result register at 0x10000480
+start_accelerator - Setting start bit
+start_accelerator - Control reg out value after high = 0x1
+start_accelerator - Control reg out value after low = 0x0
+start_accelerator - Control reg in value after low = 0x0
+
+wait_accelerator - Waiting accelerator 0 to finish...
+wait_accelerator - Control reg in value on entrance = 0x0
+cp_result_from_accel_memory - Copying result data from accelerator 0 memory... copy succeed
+
+get_time_ns_FPGA - Getting duration value from accelerator 0...
+
+init_accelerator_memory - Initializing accelerator 1 memory...
+init_accelerator_memory - Param data physical address : 0x10001000
+init_accelerator_memory - Result data physical address : 0x10001040
+init_accelerator_memory - Mmap accelerator 1 memory at address 0x10001000... mmap succeed
+
+cp_param_and_result_to_accel_memory - Copying param and result data to accelerator 1 memory... copy succeed
+
+start_accelerator - Starting accelerator 1...
+start_accelerator - Copying addresses of param and result to accelerator registers
+start_accelerator - param register at 0x10001000
+start_accelerator - result register at 0x10001040
+start_accelerator - Setting start bit
+start_accelerator - Control reg out value after high = 0x4
+start_accelerator - Control reg out value after low = 0x0
+start_accelerator - Control reg in value after low = 0x3
+
+wait_accelerator - Waiting accelerator 1 to finish...
+wait_accelerator - Control reg in value on entrance = 0x3
+cp_result_from_accel_memory - Copying result data from accelerator 1 memory... copy succeed
+
+get_time_ns_FPGA - Getting duration value from accelerator 1...
+
+matvec     : 217230 ns
+relu_quant : 15980 ns
+sortie z   : 951 0 305 0 0 0 1845 135 0 1367 0 514 571 567 244 0
+max = 1845
+Verification FPGA == CPU : OK
+deinit_locod - Deinitializing accelerator system...
+deinit_locod - Munmap accelerator 0 memory at address 0x10000000... munmap succeed
+deinit_locod - Munmap accelerator 1 memory at address 0x10001000... munmap succeed
+deinit_locod - Munmap control registers at address 0x43c00000... munmap succeed
+deinit_locod - Closing mem file descriptor...

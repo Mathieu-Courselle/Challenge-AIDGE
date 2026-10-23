@@ -79,3 +79,29 @@ Carte : implémentation C complète (`05_benchmark_carte/balle.c`), float32, NEO
 
 ### Pistes
 Mesurer le temps par couche, simuler l'int8, choisir les fonctions candidates FPGA (convolutions ≈ 73 % du temps de compression).
+
+## Cinq modèles CompressAI exportés en ONNX (qualité 3, image 64x64)
+
+Détails et usage : `03_export_onnx/README.md`. Millions de multiplications des convolutions :
+
+| Modèle | g_a (encodeur) | g_s (décodeur) | hyper et entropie |
+|---|---|---|---|
+| bmshj2018-factorized | 150,7 | 150,7 | aucun |
+| bmshj2018-hyperprior | 150,7 | 150,7 | h_a 5,6 / h_s 5,6 |
+| mbt2018-mean | 150,7 | 150,7 | h_a 5,6 / h_s 22,1 |
+| mbt2018 | 324,4 | 324,4 | h_a 9,9 / h_s 22,4 / contexte 29,5 / entropie 16,3 |
+| cheng2020-anchor | 653,3 | 1009,8 | h_a 6,0 / h_s 14,0 / contexte 13,1 / entropie 7,2 |
+
+Estimation du temps de convolutions sur la carte (calcul : multiplications divisées par 220 millions par seconde, vitesse mesurée ; ce n'est pas une mesure) :
+encodeur complet environ 0,7 s pour bmshj2018-factorized et hyperprior, 0,8 s pour mbt2018-mean, 1,8 s pour mbt2018, 3,2 s pour cheng2020-anchor (décodeur 4,7 s).
+
+Écart ONNX / PyTorch : inférieur à 3e-5 pour tous les sous réseaux.
+
+## Test du FPGA
+
+Détails et procédure : `06_test_fpga/README.md`.
+
+- `fpgautil -b fpga_swapped.bin` : chargé en 68 ms, état `operating`.
+- Exemple LoCoD (matvec puis relu_quant) : matvec 217,2 µs, relu_quant 16,0 µs, total 233,2 µs.
+- Vérification FPGA contre CPU : OK.
+- Ce n'est pas notre modèle : c'est un exemple de test fourni par un camarade.

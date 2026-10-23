@@ -26,12 +26,13 @@ Carte PYNQ-Z2 : fpgautil -b fpga.bin puis ./locod-cpu
 |---|---|
 | `01_compressai/` | Référence sur PC : `test_cai.py` (une image), `bench_cai.py` (200 images, plusieurs qualités), `bench_models.py` (comparaison de 5 modèles CompressAI) |
 | `02_convolution_cpu/` | Mesures de vitesse des 4 convolutions de l'encodeur sur la carte : `conv_bench.c` (v1) et `conv_bench2.c` (v2), plus `locod_conv_test/main.c` (programme LoCoD CPU seul) |
-| `03_export_onnx/` | `export_balle.py` : exporte l'encodeur (`ga.onnx`) et le décodeur (`gs.onnx`), GDN réécrite en opérateurs standard |
+| `03_export_onnx/` | Un dossier par modèle CompressAI (factorized, hyperprior, mbt2018-mean, mbt2018, cheng2020) avec `export_onnx.py` et les fichiers `.onnx` (GDN réécrite en opérateurs standard) |
 | `04_docker_sdk/` | `Dockerfile` de l'image `sdk_pynqz2` (compilation ARM) |
 | `05_benchmark_carte/` | Benchmark complet sur la carte : encodeur + codeur rANS + décodeur en C, 200 images, comparaison avec le PC |
+| `06_test_fpga/` | Test du FPGA sur la carte : conversion du bitstream (`bit2bin.py`), rapport lisible (`rapport_fpga.py`), sortie du test |
 | `docs/` | `resultats.md` (chiffres mesurés), `commandes.md` (commandes utiles) |
 
-Les fichiers `.onnx` ne sont pas versionnés : on les régénère avec `export_balle.py`.
+Les fichiers `.onnx` sont versionnés dans `03_export_onnx/<modèle>/`. On peut les régénérer avec `export_onnx.py`.
 
 ## Démarrage rapide
 
@@ -45,7 +46,7 @@ python 01_compressai/bench_cai.py 200
 
 # 2. Export ONNX
 pip install "numpy<2" onnx onnxscript onnxruntime
-cd 03_export_onnx && python export_balle.py 3
+cd 03_export_onnx/bmshj2018-factorized && python export_onnx.py 3 64   # ou : bash 03_export_onnx/tout_exporter.sh 3 64
 
 # 3. Test de vitesse sur la carte (voir docs/commandes.md)
 ```
@@ -57,9 +58,11 @@ cd 03_export_onnx && python export_balle.py 3
 - [x] Référence PC (taux, PSNR, vitesse)
 - [x] Vitesse des convolutions sur la carte (naïf vs NEON)
 - [x] Export ONNX encodeur + décodeur (vérifié identique à PyTorch)
+- [x] Export ONNX des 5 modèles CompressAI (`03_export_onnx/`)
+- [x] Test du FPGA sur la carte avec un exemple LoCoD (`06_test_fpga/`)
 - [x] Benchmark 200 images sur la carte (implémentation C de référence, `05_benchmark_carte/`) : voir tableau ci-dessous
 - [ ] Import dans Aidge
-- [ ] Export C avec Acetone
+- [ ] Export C avec Acetone (encodeur bmshj2018-factorized généré, pas encore mesuré sur la carte)
 - [ ] Intégration dans LoCoD, test CPU sur la carte
 - [ ] FPGA (Vivado 2022.2 + Panda-Bambu)
 - [ ] Comparaison CPU / CPU + FPGA
