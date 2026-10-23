@@ -24,7 +24,7 @@ Carte PYNQ-Z2 : fpgautil -b fpga.bin puis ./locod-cpu
 
 | Dossier | Rôle |
 |---|---|
-| `01_compressai/` | Référence sur PC : `test_cai.py` (une image), `bench_cai.py` (200 images, plusieurs qualités), `bench_models.py` (comparaison de 5 modèles CompressAI) |
+| `01_compressai/` | Référence sur PC : `test_cai.py` (une image), `bench_cai.py` (200 images, plusieurs qualités), `bench_models.py` (comparaison de 5 modèles CompressAI à qualité 3), `courbes_modeles.py` (qualité en fonction du débit pour les 5 modèles sur les niveaux 1 à 8, comparaison à débit égal et à qualité égale) |
 | `02_convolution_cpu/` | Mesures de vitesse des 4 convolutions de l'encodeur sur la carte : `conv_bench.c` (v1) et `conv_bench2.c` (v2), plus `locod_conv_test/main.c` (programme LoCoD CPU seul) |
 | `03_export_onnx/` | Un dossier par modèle CompressAI (factorized, hyperprior, mbt2018-mean, mbt2018, cheng2020) avec `export_onnx.py` et les fichiers `.onnx` (GDN réécrite en opérateurs standard) |
 | `04_docker_sdk/` | `Dockerfile` de l'image `sdk_pynqz2` (compilation ARM) |

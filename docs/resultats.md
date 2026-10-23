@@ -105,3 +105,56 @@ Détails et procédure : `06_test_fpga/README.md`.
 - Exemple LoCoD (matvec puis relu_quant) : matvec 217,2 µs, relu_quant 16,0 µs, total 233,2 µs.
 - Vérification FPGA contre CPU : OK.
 - Ce n'est pas notre modèle : c'est un exemple de test fourni par un camarade.
+
+## Comparaison des 5 modèles à débit égal et à qualité égale
+
+Script : `01_compressai/courbes_modeles.py` (mesures dans `01_compressai/courbes_modeles.csv`, graphique `01_compressai/courbes_modeles.png`).
+100 images 64x64 du jeu de test, niveaux de qualité 1 à 8 (1 à 6 pour cheng2020_anchor). Débit réel après codage entropique, PSNR après décompression.
+
+### Mesures (débit en bits par pixel, PSNR en dB)
+
+| Qualité | factorized | hyperprior | mbt2018_mean | mbt2018 | cheng2020_anchor |
+|---|---|---|---|---|---|
+| 1 | 0,141 / 28,17 | 0,177 / 28,34 | 0,169 / 28,41 | 0,164 / 28,69 | 0,193 / 29,10 |
+| 2 | 0,214 / 29,29 | 0,261 / 29,53 | 0,251 / 29,68 | 0,251 / 29,88 | 0,272 / 30,29 |
+| 3 | 0,322 / 30,41 | 0,387 / 30,83 | 0,373 / 30,96 | 0,368 / 31,18 | 0,366 / 31,39 |
+| 4 | 0,491 / 31,71 | 0,559 / 32,28 | 0,544 / 32,35 | 0,541 / 32,58 | 0,536 / 33,08 |
+| 5 | 0,720 / 32,97 | 0,774 / 33,56 | 0,801 / 33,95 | 0,819 / 34,12 | 0,734 / 34,39 |
+| 6 | 1,108 / 34,65 | 1,115 / 35,26 | 1,098 / 35,43 | 1,109 / 35,55 | 0,976 / 35,62 |
+| 7 | 1,571 / 36,13 | 1,520 / 36,80 | 1,500 / 36,99 | 1,527 / 37,10 | |
+| 8 | 2,163 / 37,85 | 2,011 / 38,49 | 1,955 / 38,48 | 1,976 / 38,47 | |
+
+### Qualité (PSNR en dB) à débit égal
+
+| Débit (bpp) | 0,20 | 0,30 | 0,40 | 0,50 | 0,70 | 1,00 |
+|---|---|---|---|---|---|---|
+| Taux de compression | 120:1 | 80:1 | 60:1 | 48:1 | 34:1 | 24:1 |
+| bmshj2018_factorized | 29,07 | 30,18 | 31,01 | 31,76 | 32,86 | 34,18 |
+| bmshj2018_hyperprior | 28,66 | 29,93 | 30,94 | 31,78 | 33,12 | 34,68 |
+| mbt2018_mean | 28,89 | 30,20 | 31,18 | 31,99 | 33,32 | 34,94 |
+| mbt2018 | 29,18 | 30,42 | 31,44 | 32,25 | 33,46 | 35,02 |
+| cheng2020_anchor | 29,21 | 30,62 | 31,73 | 32,72 | 34,17 | |
+
+### Débit (bpp) nécessaire à qualité égale, et économie par rapport à bmshj2018_factorized
+
+| PSNR visé | 30 dB | 32 dB | 34 dB | 36 dB |
+|---|---|---|---|---|
+| bmshj2018_factorized | 0,283 | 0,544 | 0,958 | 1,531 |
+| bmshj2018_hyperprior | 0,307 (−8 %) | 0,526 (3 %) | 0,862 (10 %) | 1,310 (14 %) |
+| mbt2018_mean | 0,281 (1 %) | 0,502 (8 %) | 0,810 (15 %) | 1,245 (19 %) |
+| mbt2018 | 0,262 (7 %) | 0,470 (14 %) | 0,797 (17 %) | 1,230 (20 %) |
+| cheng2020_anchor | 0,253 (11 %) | 0,427 (21 %) | 0,675 (30 %) | |
+
+### Lecture
+
+- Autour de 30 dB et 0,3 bit par pixel (le niveau de qualité 3 du banc de test), `bmshj2018_factorized` est presque aussi bon que `bmshj2018_hyperprior` et `mbt2018_mean`
+  (écart de moins de 0,3 dB ; le hyperprior est même moins bon à bas débit).
+- Les modèles plus lourds gagnent surtout à plus haute qualité. À 30 dB : mbt2018 −7 % d'octets, cheng2020_anchor −11 %.
+- Coût de calcul (voir plus haut) : mbt2018 ×2,4 et cheng2020_anchor ×5,7 par rapport à factorized. Sur la carte, ce n'est pas rentable à ce niveau de qualité.
+- Choix retenu pour la suite : `bmshj2018_factorized`, le plus léger et le plus simple (pas d'hyper-réseau ni de contexte).
+
+### Limites
+
+- Images de 64x64 : les modèles ont été entraînés sur de grandes images, et les hyper-réseaux travaillent ici sur un hyper-latent de 1x1. Cela désavantage probablement les modèles à hyper-réseau.
+- Le PSNR ne mesure pas tout (une métrique perceptive pourrait classer les modèles autrement).
+- Interpolation linéaire entre peu de niveaux de qualité : les pourcentages sont approximatifs. 100 images seulement.
