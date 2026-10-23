@@ -158,3 +158,49 @@ Script : `01_compressai/courbes_modeles.py` (mesures dans `01_compressai/courbes
 - Images de 64x64 : les modèles ont été entraînés sur de grandes images, et les hyper-réseaux travaillent ici sur un hyper-latent de 1x1. Cela désavantage probablement les modèles à hyper-réseau.
 - Le PSNR ne mesure pas tout (une métrique perceptive pourrait classer les modèles autrement).
 - Interpolation linéaire entre peu de niveaux de qualité : les pourcentages sont approximatifs. 100 images seulement.
+
+## Quantification entière (int8) du modèle bmshj2018_factorized, simulée sur PC
+
+Question : si les convolutions de l'encodeur et du décodeur travaillent en entiers (comme sur le FPGA), combien de qualité et de débit perd-on ? Script : `01_compressai/quantif_int8.py`, résultats bruts dans `01_compressai/quantif_int8.csv`.
+
+### Méthode
+
+- Modèle `bmshj2018_factorized`, qualité 3, 100 images 64x64 : 20 pour calibrer les échelles, 80 pour mesurer (images différentes).
+- Quantifiés : les poids et les entrées des 8 couches de convolution (`g_a` et `g_s`). Restent en flottant, comme sur la chaîne cible : les GDN / IGDN, les biais, le modèle d'entropie et le codage rANS.
+- Quantification symétrique simulée (on arrondit sur la grille entière puis on revient en flottant : mêmes valeurs qu'un calcul entier suivi d'un rescale). Poids : une échelle par canal de sortie. Entrées : une échelle par couche, au percentile 99,99 % sur les images de calibration.
+- Débit estimé par la somme des -log2 des vraisemblances, ce qui revient au débit du codeur rANS à quelques octets d'en-tête près.
+
+### Résultats
+
+| Variante | PSNR (dB) | Perte PSNR | Débit (bpp) | Variation débit | Symboles différents |
+|---|---|---|---|---|---|
+| float (référence) | 30,25 | +0,00 | 0,312 | +0,0 % | 0,00 % |
+| poids 8 bits | 30,16 | -0,09 | 0,313 | +0,4 % | 0,46 % |
+| poids 8 + entrées 8 (int8) | 28,85 | -1,40 | 0,312 | -0,1 % | 1,13 % |
+| poids 6 + entrées 8 | 27,89 | -2,36 | 0,323 | +3,5 % | 2,35 % |
+| poids 4 + entrées 8 | 17,51 | -12,74 | 0,457 | +46,5 % | 9,78 % |
+| poids 8 + entrées 6 | 27,18 | -3,07 | 0,332 | +6,4 % | 3,20 % |
+| poids 6 + entrées 6 | 26,52 | -3,74 | 0,349 | +11,8 % | 4,19 % |
+| poids 4 + entrées 4 | 11,82 | -18,43 | 0,527 | +69,1 % | 14,09 % |
+
+Poids des convolutions : 11,55 Mo en float32, 2,89 Mo en int8 (2 886 400 paramètres).
+
+### Lecture
+
+- Les poids en 8 bits seuls ne coûtent presque rien (-0,09 dB, débit +0,4 %) : le stockage des poids peut passer de 11,55 à 2,89 Mo sans perte visible.
+- La perte de l'int8 complet (poids et entrées) est de 1,40 dB, soit 4,6 % du PSNR. Elle vient des entrées (activations) : poids 8 bits seuls, -0,09 dB ; en ajoutant les entrées 8 bits, -1,31 dB de plus. Le débit ne bouge pas (0,312 bpp), donc le coût est entièrement de la distorsion.
+- 8 bits est un seuil net : à 6 bits la perte passe à 2,4 à 3,7 dB et le débit augmente, à 4 bits le modèle s'effondre (-12,7 à -18,4 dB). Il ne faut pas descendre sous 8 bits sans réentraîner le modèle.
+- Pour le FPGA : un calcul int8 est viable (le modèle reste utilisable à 28,85 dB, pour un débit identique), au prix d'environ 1,4 dB par rapport au flottant.
+
+### Limites
+
+- Simulation sur PC : les valeurs sont celles d'un calcul entier, mais ni les largeurs d'accumulation (int32) ni les arrondis de rescale exacts du FPGA ne sont reproduits. L'écart avec le matériel est attendu faible, à confirmer par la mesure.
+- Une seule qualité (3), un seul modèle, 80 images 64x64 pour la mesure.
+- Les échelles des entrées sont par couche (une valeur par couche), une échelle par canal ou un autre percentile pourraient réduire la perte, non testé.
+- Pas d'entraînement tenant compte de la quantification (QAT) : c'est la piste habituelle pour retrouver la perte, non testée.
+
+### Pistes
+
+- Repérer la ou les couches qui perdent le plus et les garder en 16 bits ou en flottant (les convolutions qui concentrent les 1,3 dB).
+- Tester une échelle par canal pour les entrées, le percentile 99,9 % ou le maximum.
+- Mesurer d'autres niveaux de qualité (1 à 8) et le modèle `bmshj2018_hyperprior`.

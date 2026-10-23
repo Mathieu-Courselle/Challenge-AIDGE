@@ -1,0 +1,9 @@
+variante,bits_poids,bits_entrees,psnr,bpp,delta_psnr,delta_bpp_pct,symboles_differents_pct
+float (reference),,,30.252,0.3118,0.000,0.00,0.000
+poids 8 bits,8,,30.159,0.3130,-0.093,0.38,0.461
+poids 8 + entrees 8 (int8),8,8,28.852,0.3116,-1.399,-0.06,1.128
+poids 6 + entrees 8,6,8,27.890,0.3227,-2.362,3.51,2.346
+poids 4 + entrees 8,4,8,17.514,0.4569,-12.738,46.53,9.784
+poids 8 + entrees 6,8,6,27.178,0.3318,-3.074,6.41,3.205
+poids 6 + entrees 6,6,6,26.515,0.3487,-3.737,11.82,4.187
+poids 4 + entrees 4,4,4,11.819,0.5272,-18.433,69.08,14.085
