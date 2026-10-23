@@ -14,10 +14,23 @@ Elle servira ensuite à valider le code C produit par Acetone (mêmes entrées, 
 | `balle_format.py` | Format du fichier de poids (numpy seul) |
 | `balle.c` | Carte : encodeur + rANS + décodeur, mesure taille / PSNR / temps |
 | `compare.py` | Tableau des trois métriques pour 2 résultats ou plus (PC, carte, Acetone, FPGA…) |
+| `lancer_banc.sh` | Tout en une commande : préparer, compiler, envoyer, lancer sur la carte, récupérer, comparer |
 | `build_acetone.sh` | Compile `balle.c` pour la carte en y branchant le code C exporté par Acetone |
 | `test_balle_c.py` + `inc/arm_neon.h` | Test sur PC x86 du code C contre une référence numpy (modèle aléatoire) |
 
 ## Utilisation
+
+**En une commande** (recommandé), depuis Debian avec `venv-cai` actif :
+
+```bash
+cd ~/Challenge-AIDGE/05_benchmark_carte
+source ~/venv-cai/bin/activate
+bash lancer_banc.sh              # 200 images, version de référence
+bash lancer_banc.sh 200 acetone  # ajoute le code Acetone (dossiers acetone_ga/ et/ou acetone_gs/)
+```
+
+Le mot de passe de la carte est demandé 3 fois. Les résultats sont dans `comparaison.txt`, `resultats_banc.txt` et `board.csv`.
+Les commandes détaillées ci-dessous font la même chose étape par étape.
 ```bash
 # 1. PC (Debian, venv-cai) : préparer les données (quelques minutes)
 cd ~/Challenge-AIDGE/05_benchmark_carte

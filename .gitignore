@@ -19,3 +19,5 @@ board_data/
 05_benchmark_carte/balle_acetone
 05_benchmark_carte/acetone.csv
 05_benchmark_carte/.build_inner.sh
+05_benchmark_carte/resultats_banc.txt
+05_benchmark_carte/comparaison.txt
