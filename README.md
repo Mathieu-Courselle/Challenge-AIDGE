@@ -24,7 +24,7 @@ Carte PYNQ-Z2 : fpgautil -b fpga.bin puis ./locod-cpu
 
 | Dossier | Rôle |
 |---|---|
-| `01_compressai/` | Référence sur PC : `test_cai.py` (une image), `bench_cai.py` (200 images, plusieurs qualités), `bench_models.py` (comparaison de 5 modèles CompressAI à qualité 3), `courbes_modeles.py` (qualité en fonction du débit pour les 5 modèles sur les niveaux 1 à 8, comparaison à débit égal et à qualité égale), `quantif_int8.py` (simulation d'un calcul entier int8 des convolutions : perte de qualité et de débit) |
+| `01_compressai/` | Référence sur PC : `test_cai.py` (une image), `bench_cai.py` (200 images, plusieurs qualités), `bench_models.py` (comparaison de 5 modèles CompressAI à qualité 3), `courbes_modeles.py` (qualité en fonction du débit pour les 5 modèles sur les niveaux 1 à 8, comparaison à débit égal et à qualité égale), `quantif_int8.py` (simulation d'un calcul entier int8 des convolutions : perte de qualité et de débit), `visuel_images.py` (image avant / après compression) |
 | `02_convolution_cpu/` | Mesures de vitesse des 4 convolutions de l'encodeur sur la carte : `conv_bench.c` (v1) et `conv_bench2.c` (v2), plus `locod_conv_test/main.c` (programme LoCoD CPU seul) |
 | `03_export_onnx/` | Un dossier par modèle CompressAI (factorized, hyperprior, mbt2018-mean, mbt2018, cheng2020) avec `export_onnx.py` et les fichiers `.onnx` (GDN réécrite en opérateurs standard) |
 | `04_docker_sdk/` | `Dockerfile` de l'image `sdk_pynqz2` (compilation ARM) |
@@ -80,3 +80,10 @@ cd 03_export_onnx/bmshj2018-factorized && python export_onnx.py 3 64   # ou : ba
 | Décompression | 3.7 ms | 861.8 ms |
 
 La carte donne le même résultat que le PC (0 symbole différent, écart PSNR max 0.027 dB) mais ~250x plus lentement : c'est la base de comparaison pour l'accélération FPGA. Détails dans `docs/resultats.md`.
+
+### Exemples avant / après compression
+
+![Original, image reconstruite et carte des erreurs, 3 images](docs/visuel_images.png)
+
+Trois images du jeu de test (modèle `bmshj2018_factorized`, qualité 3), générées par `01_compressai/visuel_images.py`. Colonnes : original (12 288 octets), image après compression et décompression, carte des erreurs (multipliée par 5). Les images douces (nébuleuses) passent à environ 96:1 et 99:1 pour 31,6 dB. Le champ d'étoiles, plein de petits détails, coûte plus d'octets (328, soit 37,5:1) et la qualité tombe à 22,3 dB.
+

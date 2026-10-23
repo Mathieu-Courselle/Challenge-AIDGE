@@ -204,3 +204,26 @@ Poids des convolutions : 11,55 Mo en float32, 2,89 Mo en int8 (2 886 400 paramè
 - Repérer la ou les couches qui perdent le plus et les garder en 16 bits ou en flottant (les convolutions qui concentrent les 1,3 dB).
 - Tester une échelle par canal pour les entrées, le percentile 99,9 % ou le maximum.
 - Mesurer d'autres niveaux de qualité (1 à 8) et le modèle `bmshj2018_hyperprior`.
+
+## Exemples visuels avant / après compression
+
+![Original, image reconstruite et carte des erreurs, 3 images](visuel_images.png)
+
+Script : `01_compressai/visuel_images.py` (compression et décompression réelles avec codage rANS, `python visuel_images.py 3`). Modèle `bmshj2018_factorized`, qualité 3, 3 images 64x64 tirées au hasard dans le jeu de test.
+
+| Image | Octets | Taux de compression | PSNR |
+|---|---|---|---|
+| GSFC_20171208_Archive_e000607_011 | 124 | 99,1:1 | 31,60 dB |
+| PIA21073_013 | 128 | 96,0:1 | 31,67 dB |
+| GSFC_20171208_Archive_e000256_009 | 328 | 37,5:1 | 22,29 dB |
+
+### Lecture
+
+- Les deux premières images sont douces (dégradés, grandes zones peu texturées) : elles se compressent à environ 100:1 et gardent leur forme générale. Ce qui disparaît est la texture fine, d'où l'aspect lissé visible dans la colonne du milieu et les erreurs diffuses dans la carte des erreurs.
+- La troisième est un champ d'étoiles, plein de petits détails isolés : elle coûte plus de 2,5 fois plus d'octets et la qualité chute à 22,3 dB. Les étoiles les plus brillantes sont reconnaissables, beaucoup de points faibles sont fondus ou déplacés, et l'erreur est répartie sur toute l'image.
+- La qualité dépend donc fortement du contenu de l'image : la moyenne de 30,47 dB (200 images) cache des images à 22 dB et d'autres à plus de 31 dB.
+
+### Limites
+
+Trois images seulement, tirées au hasard (graine fixe) : c'est une illustration, pas une mesure statistique. Les statistiques sont dans le tableau des 200 images plus haut.
+
